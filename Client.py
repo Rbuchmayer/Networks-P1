@@ -25,7 +25,7 @@ secret_a = data_a[7]
 
 for i in range(0, num):
     pad = ''
-    for _ in range(0, len + (len % 4)):
+    for _ in range(0, len + (4 - (len % 4))):
         pad += 'x'
     MESSAGE = struct.pack('!IIHHI' + pad, len+4, secret_a, 1, 495, i)
 
@@ -45,13 +45,12 @@ data_b2, addr = sock.recvfrom(20)
 data_b2 = struct.unpack('!IIHHII', data_b2)
 tcp_port = data_b2[4]
 secret_b = data_b2[5]
-
 sock.close()
 
 # Stage C
 tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 tcp_socket.connect((ATTU_IP, tcp_port))
-
+print('!!')
 data_c2, addr = tcp_socket.recvfrom(28)
 data_c2 = struct.unpack('!IIHHIIIBxxx', data_c2)
 
@@ -64,7 +63,7 @@ c = data_c2[7]
 for i in range(0, num_2):
     pad = ''
     payload = ''
-    for _ in range(0, (len_2 % 4)):
+    for _ in range(0, (4 - (len_2 % 4))):
         pad += 'x'
 
     for _ in range(0, len_2):
@@ -78,6 +77,7 @@ data_d2, addr_d2 = tcp_socket.recvfrom(16)
 data_d2 = struct.unpack('!IIHHI', data_d2)
 secret_d = data_d2[4]
 tcp_socket.close()
+print('Done')
 
 
 
