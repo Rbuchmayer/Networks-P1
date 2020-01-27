@@ -5,7 +5,8 @@ import struct
 
 IP = 'localhost'
 UDP_PORT = 12235
-MESSAGE = struct.pack('!IIHH11sx', 12, 0, 1, 495, bytes('hello world', 'ascii'))
+ID = 495
+MESSAGE = struct.pack('!IIHH11sx', 12, 0, 1, ID, bytes('hello world', 'ascii'))
 
 # send UDP to server
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -27,7 +28,7 @@ for i in range(0, num):
     pad = ''
     for _ in range(0, len + (4 - (len % 4))):
         pad += 'x'
-    MESSAGE = struct.pack('!IIHHI' + pad, len+4, secret_a, 1, 495, i)
+    MESSAGE = struct.pack('!IIHHI' + pad, len+4, secret_a, 1, ID, i)
 
     while True:
         try:
@@ -66,7 +67,7 @@ for i in range(0, num_2):
     for _ in range(0, len_2):
         payload += chr(c)
 
-    MESSAGE = struct.pack('!IIHH' + str(len_2) + 's' + pad, len_2, secret_c, 1, 495, bytes(payload, 'ascii'))
+    MESSAGE = struct.pack('!IIHH' + str(len_2) + 's' + pad, len_2, secret_c, 1, ID, bytes(payload, 'ascii'))
     tcp_socket.sendto(MESSAGE, (IP, tcp_port))
 
 # d2

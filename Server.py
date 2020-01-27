@@ -17,7 +17,7 @@ class MyStageAHandler(socketserver.BaseRequestHandler):
             if data[0] != len(data[4]) + 1 or data[1] != 0 or data[2] != 1 or data[4].decode('ascii') != 'hello world':
                 socket.close()
                 return
-            num = random.randint(1, 10)
+            num = random.randint(20, 30)
             len_1 = random.randint(1, 10)
             udp_port = random.randint(40000, 50000)
             secret_a = random.randint(1, 100)
