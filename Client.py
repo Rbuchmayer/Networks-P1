@@ -1,9 +1,13 @@
 import socket
 import struct
+import sys
 
 # Stage a
 
-IP = 'localhost'
+IP = 'attu2.cs.washington.edu'
+if len(sys.argv) > 1 and sys.argv[1] == '-local':
+    IP = 'localhost'
+
 UDP_PORT = 12235
 MESSAGE = struct.pack('!IIHH11sx', 12, 0, 1, 495, bytes('hello world', 'ascii'))
 
