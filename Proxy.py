@@ -99,7 +99,7 @@ class myThread(threading.Thread):
             server_port = urlparse(first_line_tokens[1]).port
         if server_port is None:
             server_port = 80
-
+        print(">>> ", data_first_line.decode('ascii'))
         # handle connect
         if first_line_tokens[0].decode('ascii').upper() == 'CONNECT':
             if server_port is None:
@@ -108,17 +108,18 @@ class myThread(threading.Thread):
             connect_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             try:
                 connect_socket.connect((server_host, server_port))
-                message = bytearray('HTTP/1.1 200 OK\r\n', 'ascii')
+                #connect_socket.send(data)
+                #print("Forwarding: ", data)
+                message = bytearray('HTTP/1.1 200 OK\r\n\r\n', 'ascii')
                 self.socket.send(message)
-                connect_socket.setblocking(0)
-                self.socket.setblocking(0)
+                #connect_socket.setblocking(0)
+                #self.socket.setblocking(0)
                 while True:
-                    print('!')
                     ready_read, ready_write, in_err = select.select(
                         [self.socket, connect_socket],
-                        [self.socket, connect_socket],
                         [],
-                        10000
+                        [],
+                        10000.0
                     )
                     for sock in ready_read:
                         data = sock.recv(4000)
@@ -126,14 +127,12 @@ class myThread(threading.Thread):
                             connect_socket.close()
                             self.socket.close()
                             return
-                        print(data)
                         if sock == self.socket:
                             connect_socket.send(data)
                         else:
                             self.socket.send(data)
 
             except:
-                print('bad gateway')
                 message = bytearray('HTTP/1.1 502 Bad Gateway\r\n', 'ascii')
                 self.socket.send(message)
                 self.socket.close()
