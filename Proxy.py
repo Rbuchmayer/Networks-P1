@@ -65,7 +65,7 @@ def filterHeaders(headers):
 
     return new_headers
 
-def processData(socket):
+def processData(socket, shouldFilter = True):
     data = socket.recv(4000)
     # get all headers
     data_headers = data
@@ -74,9 +74,8 @@ def processData(socket):
         data_headers = data
     header_end = data.find(bytearray("\r\n\r\n", 'ascii'))
     data_headers = data_headers[:header_end].split(bytearray('\r\n', 'ascii'))
-
-    data_headers = filterHeaders(data_headers)
-
+    if shouldFilter:
+        data_headers = filterHeaders(data_headers)
     return data, data_headers, data[header_end:]
 
 
@@ -86,7 +85,7 @@ class myThread(threading.Thread):
         self.socket = socket
 
     def run(self):
-        data, data_headers, body = processData(self.socket)
+        data, data_headers, body = processData(self.socket, False)
 
         # first line
         data_first_line = data_headers[0]
@@ -137,6 +136,7 @@ class myThread(threading.Thread):
                 self.socket.send(message)
                 self.socket.close()
         else:
+            data_headers = filterHeaders(data_headers)
             # print first line, establish tcp connection
             server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             if server_port is None:
@@ -181,15 +181,16 @@ class myThread(threading.Thread):
             self.socket.close()
 
 if __name__ == "__main__":
+    listen_host = 'localhost'
     # create socket
     serversocket = socket.socket(
         socket.AF_INET, socket.SOCK_STREAM)
-    serversocket.bind(('localhost', listen_port))
+    serversocket.bind((listen_host, listen_port))
     serversocket.listen(5)
+    print('Proxy listening on ' + listen_host + ':' + str(listen_port))
     # connect to client
     while True:
         (clientsocket, address) = serversocket.accept()
         thread = myThread(clientsocket)
-        thread.run()
-
+        thread.start()
 
