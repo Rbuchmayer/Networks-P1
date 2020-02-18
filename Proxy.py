@@ -1,3 +1,4 @@
+#!/bin/python
 import threading
 import socket
 import sys
@@ -5,7 +6,7 @@ from urllib.parse import urlparse
 import select
 
 if len(sys.argv) < 2:
-    print('bad arguments')
+    print('bad arguments, specify a port to run the proxy on')
     sys.exit()
 listen_port = int(sys.argv[1])
 
@@ -24,6 +25,8 @@ def getHost(headers):
     for i in range(0, len(headers)):
         header = headers[i].decode('ascii').split()
         header = list(filter(None, header))
+        if len(header) < 2:
+            continue # This is not an interesting entry.
         if header[0].lower() == 'host:':
             url = header[1]
             response = urlparse(url)
@@ -46,6 +49,8 @@ def getContentLength(headers):
     for i in range(0, len(headers)):
         header = headers[i].decode('ascii').split()
         header = list(filter(None, header))
+        if len(header) < 2:
+            continue # This is not an interesting header
         if header[0].lower() == 'content-length:':
             return int(header[1])
     return length
@@ -64,13 +69,15 @@ def filterHeaders(headers):
 
 
 def processData(socket, shouldFilter = True):
-    data = socket.recv(4000)
-    # get all headers
+    data = bytearray("", "ascii")
     data_headers = data
     while bytearray("\r\n\r\n", 'ascii') not in data_headers:
-        data += socket.recv(4000)
+        recvd = socket.recv(4000)
+        data += recvd
         data_headers = data
     header_end = data.find(bytearray("\r\n\r\n", 'ascii'))
+    if header_end == -1:
+        header_end = len(data)
     data_headers = data_headers[:header_end].split(bytearray('\r\n', 'ascii'))
     if shouldFilter:
         data_headers = filterHeaders(data_headers)
@@ -84,7 +91,10 @@ class myThread(threading.Thread):
 
     def run(self):
         data, data_headers, body = processData(self.socket, False)
-
+        if len(data) == 0:
+            print('There was no data from the socket?')
+            self.socket.close()
+            return
         # first line
         data_first_line = data_headers[0]
         first_line_tokens = data_first_line.split()
@@ -94,8 +104,6 @@ class myThread(threading.Thread):
         server_host, server_port = getHost(data_headers)
         if server_port is None:
             server_port = urlparse(first_line_tokens[1]).port
-        if server_port is None:
-            server_port = 80
         print(">>> ", data_first_line.decode('ascii'))
         # handle connect
         if first_line_tokens[0].decode('ascii').upper() == 'CONNECT':
@@ -129,6 +137,8 @@ class myThread(threading.Thread):
                 self.socket.send(message)
                 self.socket.close()
         else:
+            if server_port is None:
+                server_port = 80
             data_headers = filterHeaders(data_headers)
             # print first line, establish tcp connection
             server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -142,14 +152,12 @@ class myThread(threading.Thread):
             tot_recv = len(body)
             server_socket.send(bytearray("\r\n", 'ascii').join(data_headers))
             server_socket.send(body)
-
             while content_length > tot_recv:
                 data = self.socket.recv(4000)
                 if len(data) == 0:
                     break
                 server_socket.send(data)
                 tot_recv += len(data)
-
             # Response from server
             data, data_headers, body = processData(server_socket)
             content_length = getContentLength(data_headers)
