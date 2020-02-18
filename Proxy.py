@@ -1,16 +1,13 @@
-import socketserver
 import threading
-import sys
 import socket
+import sys
 from urllib.parse import urlparse
 import select
 
-listen_port = 1234
-#if len(sys.argv) < 2:
-#    print('no')
-#    sys.exit()
-
-#listen_port = sys.argv[1]
+if len(sys.argv) < 2:
+    print('bad arguments')
+    sys.exit()
+listen_port = int(sys.argv[1])
 
 
 def isInt(x):
@@ -19,6 +16,7 @@ def isInt(x):
         return True
     except ValueError:
         return False
+
 
 def getHost(headers):
     host = None
@@ -62,8 +60,8 @@ def filterHeaders(headers):
                 header = bytearray('Proxy-connection: close', 'ascii')
             new_headers.append(header)
     new_headers.append(bytearray('Connection: close', 'ascii'))
-
     return new_headers
+
 
 def processData(socket, shouldFilter = True):
     data = socket.recv(4000)
@@ -107,12 +105,8 @@ class myThread(threading.Thread):
             connect_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             try:
                 connect_socket.connect((server_host, server_port))
-                #connect_socket.send(data)
-                #print("Forwarding: ", data)
                 message = bytearray('HTTP/1.1 200 OK\r\n\r\n', 'ascii')
                 self.socket.send(message)
-                #connect_socket.setblocking(0)
-                #self.socket.setblocking(0)
                 while True:
                     ready_read, ready_write, in_err = select.select(
                         [self.socket, connect_socket],
@@ -130,7 +124,6 @@ class myThread(threading.Thread):
                             connect_socket.send(data)
                         else:
                             self.socket.send(data)
-
             except:
                 message = bytearray('HTTP/1.1 502 Bad Gateway\r\n', 'ascii')
                 self.socket.send(message)
@@ -145,9 +138,6 @@ class myThread(threading.Thread):
             # get content length
             content_length = getContentLength(data_headers)
 
-            # disable keep-alive
-
-
             # send data to server
             tot_recv = len(body)
             server_socket.send(bytearray("\r\n", 'ascii').join(data_headers))
@@ -161,14 +151,9 @@ class myThread(threading.Thread):
                 tot_recv += len(data)
 
             # Response from server
-
             data, data_headers, body = processData(server_socket)
             content_length = getContentLength(data_headers)
             tot_recv = len(body)
-
-            # modify headers
-
-
             self.socket.send(bytearray("\r\n", 'ascii').join(data_headers))
             self.socket.send(body)
             while content_length > tot_recv:
@@ -179,6 +164,7 @@ class myThread(threading.Thread):
                 tot_recv += len(data)
             server_socket.close()
             self.socket.close()
+
 
 if __name__ == "__main__":
     listen_host = 'localhost'
@@ -193,4 +179,3 @@ if __name__ == "__main__":
         (clientsocket, address) = serversocket.accept()
         thread = myThread(clientsocket)
         thread.start()
-
